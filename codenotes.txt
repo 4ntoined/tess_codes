@@ -1,0 +1,11 @@
+stupid photo plot:
+
+split x axis at 2459951, resume at ...54
+y-range is like 12.5-13.5 and 14.25-12.75
+
+for tail widths: we assume tail (peak) stays +- 7 pixels,
+protect 191 to 209, middle 19 pixels, from continuum measure
+whole range is 41 pixels, leavng 41-19=41-(20-1)=41-20+1=21+1
+22 pixels left so 11 to average on each flank,
+to first order we'll just fit a line
+

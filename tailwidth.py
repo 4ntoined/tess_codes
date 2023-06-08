@@ -40,11 +40,13 @@ def photo(frame,radius=1):
     #all
     liss = []
     widths = []
-    for i in range( centerx, nx ):
+    for i in range( centerx, centerx+25 ):
         #print(i)
         #thisone = ( centery, i  )
-        vertline = frame.copy()[:,i]
-        vertline_i = np.arange(0,vertline.size,1)
+        bounds = (180,221)
+        span = bounds[1]-bounds[0]
+        vertline = frame.copy()[bounds[0]:bounds[1],i]
+        vertline_i = np.arange((1-span)//2, vertline.size-span//2, 1)
         #if i == 208:
         plt.plot(vertline_i,vertline)
         plt.show()
@@ -124,6 +126,10 @@ if __name__ == '__main__':
         files = c
     #trying with one
     print(files)
+    ones = files[:17]
+    five = files[17:22]
+    thir = files[22:]
+    #print(ones,'\n',five,'\n',thir)
     #fill =  fits.open(top_data_directory + 'Didymos_30day_01.fits')
     #dat1 = fill[0].data
     #goo = photo( dat1 )
@@ -147,13 +153,13 @@ if __name__ == '__main__':
     #    phot3 = np.array(phot2,dtype=float)
     #    xx,yy = get_photo(phot3)
     #    plot_photo(xx,yy,title=files[i])
-    she = photo_all(files)
+    she = photo_all(five)
     #she0 = she[0]
     #print( she[-1][1] )
     #plot_photo( she0[0],she0[1],title=files[0] )
     #plot_photo( she[-3][0],she[-3][1],title=files[-3] )
     for i in range(len(she)):
-        plot_photo( she[i][0],she[i][1],title=files[i], savehere=savinghere )
+        plot_photo( she[i][0],she[i][1],title=files[i] )
 
     #plot_photo( she[7][0],she[7][1],title=files[7] )
     #xx = np.arange(-10,10)
