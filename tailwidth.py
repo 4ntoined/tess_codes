@@ -115,11 +115,14 @@ def photo_all(files):
 if __name__ == '__main__':
     solong = '/run/user/1000/gvfs/sftp:host=copernicus.astro.umd.edu,user=antoine/'+\
         'Volumes/TESS_05/AW_Data/Sector_60/S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
+    alc = '/run/user/5317/gvfs/sftp:host=copernicus.astro.umd.edu/'+\
+        'Volumes/TESS_05/AW_Data/Sector_60/S60_cam1_ccd4/Didymos/Didymos_coadd/fits/' 
     savinghere = '/run/user/1000/gvfs/sftp:host=copernicus.astro.umd.edu,user=antoine/'+\
         'Volumes/TESS_05/AW_Data/didy_widths/'
     #archived = '/run/user/1000/gvfs/sftp\:host\=copernicus.astro.umd.edu\,user\=antoine/'+\
     #    'Volumes/TESS_05/AW_Data/Sector_60/archive_S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
-    top_data_directory = solong
+    #top_data_directory = solong
+    top_data_directory = alc
     files = []
     for a,b,c in os.walk(top_data_directory):
         #print(c)
