@@ -62,25 +62,26 @@ def plot_photo(datax, datay, title=''):
     datax, datay: 1d arrays of floats to have plotted
     """
     fig, ax = plt.subplots()
-    #fig.figsize=
+    fig.set_size_inches(6,6)
     fig.dpi=140
     #
     ax.plot(datax, datay)
     ax.set_yscale('log')
-    ax.set_xlim(0,50)
+    ax.set_xlim(0,100)
+    #ax.set_ylim(bottom=1.)
     #
     if title: ax.set_title(title)
     ax.set_xlabel('pixels from center')
-    ax.set_ylabel('sum in 3x3 aperture')
-    #plt.savefig(savehere)
+    ax.set_ylabel('profile')
+    #plt.savefig(savehere,dpi=200,bbox_inches='tight')
     plt.show()
     return
-def photo_all(files):
+def photo_all(files,radius=1):
     saved = []
     for i in range(len(files)):
         ifile = fits.open(top_data_directory+files[i])
         dati = ifile[0].data
-        phot1 = photo( dati, radius=1 )
+        phot1 = photo( dati, radius=radius )
         #print(phot1)
         phot2 = [ i[2] for i in phot1 ]
         phot3 = np.array(phot2,dtype=float)
@@ -88,17 +89,25 @@ def photo_all(files):
         #plot_photo(xx,yy,title=files[i])
         saved.append( (xx,yy,files[i]) )
     return saved
+def sorter(text):
+    return
 if __name__ == '__main__':
-    solong = '/run/user/1000/gvfs/sftp:host=copernicus.astro.umd.edu,user=antoine/'+\
-        'Volumes/TESS_05/AW_Data/Sector_60/S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
+    root1 = '/run/user/1000/gvfs/sftp:host=copernicus.astro.umd.edu,user=antoine/'
+        #'Volumes/TESS_05/AW_Data/Sector_60/S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
+    path1 = ''
+    path2 = 'Users/antoine/Desktop/stash/rotated/'
     #archived = '/run/user/1000/gvfs/sftp\:host\=copernicus.astro.umd.edu\,user\=antoine/'+\
     #    'Volumes/TESS_05/AW_Data/Sector_60/archive_S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
-    top_data_directory = solong
-    files = []
+    top_data_directory = root1 + path2
+    file2 = []
     for a,b,c in os.walk(top_data_directory):
         #print(c)
-        files = c
+        file2 = c
     #trying with one
+    files = sorted(file2)
+    ones = files[:17]
+    five = files[17:22]
+    thir = files[22:]
 
     #fill =  fits.open(top_data_directory + 'Didymos_30day_01.fits')
     #dat1 = fill[0].data
@@ -123,11 +132,13 @@ if __name__ == '__main__':
     #    phot3 = np.array(phot2,dtype=float)
     #    xx,yy = get_photo(phot3)
     #    plot_photo(xx,yy,title=files[i])
-    she = photo_all(files)
+    she = photo_all(five,radius=5)
+    shd = photo_all(thir,radius=5)
     #print( she[-1][1] )
-    plot_photo( she[-1][0],she[-1][1],title=files[-1] )
-    plot_photo( she[-3][0],she[-3][1],title=files[-3] )
-    plot_photo( she[7][0],she[7][1],title=files[7] )
+    for i in range(len(she)): plot_photo( she[i][0],she[i][1],title=five[i] )
+    plot_photo( she[0][0],she[0][1],title=thir[0] )
+    #plot_photo( she[-3][0],she[-3][1],title=five[-3] )
+    #plot_photo( she[7][0],she[7][1],title=files[7] )
     pass
 else:
     pass
