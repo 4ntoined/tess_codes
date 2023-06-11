@@ -27,14 +27,14 @@ def square_ap(center,radius=1):
 def aperture_scan(frame, scan_location, aperture_size=1):
     ##1d data
     return
-def wider(frame,radius=0):
+def wider(frame,radius=0,make_image=False):
     """
     will take in [frame], measure the brightness in central 9 pixels
     and then track and measure the tail brightness
     frame : 2d array where comet is centered
     """
-    window_1 = 20           #radius of intial aperture
-    continuum_long = 11     #number of pixels per flank to use for cont'm
+    window_1 = 30           #radius of intial aperture
+    continuum_long = 21     #number of pixels per flank to use for cont'm
     window_2 = 15           #central range to search for peaks
     sho = ( window_1*2+1 - window_2 ) // 2
     ny, nx = frame.shape
@@ -53,18 +53,20 @@ def wider(frame,radius=0):
     peaks = []
     widths = []
     bounder = (centerx, nx) #xaxis
-    for i in range( bounder[0], bounder[1] ):
+    bounds = (centery-window_1,centery+window_1+1) #yaxis
+    spanx = bounder[1] - bounder[0]
+    spany = bounds[1] - bounds[0]
+    if make_image: newim = np.zeros(shape=(spany, spanx),dtype=float)
+    for i in range( bounder[0], bounder[1] ): # xaxis
         #print(i)
         #thisone = ( centery, i  )
-        bounds = (centery-window_1,centery+window_1+1) #yaxis
-        span = bounds[1]-bounds[0]
         if radius==0:
             vertline = frame.copy()[bounds[0]:bounds[1],i]
         else:
         #### turn frame into vertline using aperture
-            vertt =  [ np.nanmean( frame.copy()[ii-radius:ii+radius+1,i-radius:i+radius+2] ) for ii in range(bounds[0]+radius,bounds[1]-radius) ]
+            vertt =  [ np.nanmean( frame.copy()[ii-radius:ii+radius+1,i-radius:i+radius+1] ) for ii in range(bounds[0],bounds[1]) ]
             vertline= np.array(vertt,dtype=float)
-        vertline_i = np.arange((1-span)//2, vertline.size-span//2, 1)
+        vertline_i = np.arange((1-spany)//2, vertline.size-spany//2, 1)
         #if i == 208:
         #plt.plot(vertline_i,vertline)
         #plt.show()
@@ -72,12 +74,13 @@ def wider(frame,radius=0):
         contin = np.concatenate( [vertline[:continuum_long], vertline[-continuum_long:]] )
         try:
             #fitting = curve_fit(gauss, vertline_i, vertline, p0=(1.,vertline.size//2))
-            #find continuum
+            ## find continuum
             fit_par, fit_err = curve_fit(liner, contx, contin, p0=(0.,0.))
             confit = liner(vertline_i, fit_par[0], fit_par[1])
-            #remove continuum
+            ## remove continuum
             subtracted = vertline - confit
-            #detect location of max
+            if make_image: newim[:,i-bounder[0]] = subtracted.copy()
+            ## detect location of max
             #print(subtracted)
             peakarea = subtracted[sho:-sho].copy()
             peaki = np.arange(peakarea.size,dtype=int)
@@ -95,9 +98,9 @@ def wider(frame,radius=0):
             #maxpeak = np.max( exv )
             #print('maxes at:', extras[0]-7)
             #print('max max loc:',exi[maxpeak]-7,'| maxmax value:', exv[ maxpeak ] )
-            #take half the max, plot hori line there, see where peak intersects
+            ## take half the max, plot hori line there, see where peak intersects
             halfmax = exv[maxpeak] / 2.
-            #find lesser intersect
+            ## find lesser intersect
             verge = True
             check = exi[maxpeak]
             while 1:
@@ -111,7 +114,7 @@ def wider(frame,radius=0):
                     verge=False
                     break
             lowend = check
-            #find greater intersect
+            ## find greater intersect
             check = exi[maxpeak]
             while 1: #check < peaki[-1]+1:
                 if peakarea[check] < halfmax:
@@ -124,7 +127,7 @@ def wider(frame,radius=0):
             highend = check
             if verge==False:
                 #looking for intersects failed!
-                widths.append(highend-lowend)
+                widths.append(int(highend-lowend))
                 liss.append((exv[maxpeak],highend-lowend))
             else:
                 #print(lowend-7,highend-7)
@@ -148,7 +151,7 @@ def wider(frame,radius=0):
             #opt = (-99,-99)
             #cov = (-9.9,-9.9)
             peaks.append(-99)
-            widths.append(4)
+            widths.append(-99)
             pass
         else:
             #plt.plot(vertline_i,vertline,color='b')
@@ -164,7 +167,10 @@ def wider(frame,radius=0):
         #data9 = frame.copy()[ aper[1][0]:aper[1][1],aper[0][0]:aper[0][1] ]
         #photom = photo2(data9)
         #liss.append(photom)
-    return (peaks, widths)
+    if make_image:
+        return (peaks, widths, newim)
+    else:
+        return (peaks, widths)
 def photo2(aperture):
     nsize = aperture.size
     summ = np.nansum( aperture )
@@ -199,7 +205,16 @@ def plot_photo(datax, datay, title='', savehere=''):
         plt.savefig(savehere+title+'.png')
     plt.show()
     return
-def photo_all(files):
+def datafile(filepath,extend=0):
+    ii = fits.open(filepath)
+    head = ii[extend].header
+    dato = ii[extend].data
+    return (dato, head)
+def bulkdata(filelist,extend=0):
+    ans=[]
+    for i in filelist: ans.append(datafile(i,extend=extend))
+    return ans
+def photo_all(files, radius=0):
     saved = []
     c1=[]
     c2=[]
@@ -207,7 +222,7 @@ def photo_all(files):
     for i in range(len(files)):
         ifile = fits.open(top_data_directory+files[i])
         dati = ifile[0].data
-        p1, p2 = wider( dati, radius=3 )
+        p1, p2 = wider( dati, radius=radius )
         #print(phot1)
         #photos = np.array(phot1, dtype=float)
         peaks = np.array(p1,dtype=float)
@@ -218,7 +233,7 @@ def photo_all(files):
         cc.append((peaks,wides))
         #plt.plot( np.log(peaks) )
         #plt.yscale='log'
-        plt.show()
+        #plt.show()
         #print(phot1)
         #phot2 = [ i[0][0] for i in phot1 ]
         #phot_err = [ np.sqrt(np.diag(i[1]))[0] for i in phot1]
@@ -236,50 +251,44 @@ if __name__ == '__main__':
         'Volumes/TESS_05/AW_Data/Sector_60/S60_cam1_ccd4/Didymos/Didymos_coadd/fits/' 
     savinghere = '/run/user/1000/gvfs/sftp:host=copernicus.astro.umd.edu,user=antoine/'+\
         'Volumes/TESS_05/AW_Data/didy_widths/'
+    local_fits = '/home/antoine/Desktop/darttess/B_rotation/fits/'
+    save2 = '/home/antoine/codespace_tess/'
     #archived = '/run/user/1000/gvfs/sftp\:host\=copernicus.astro.umd.edu\,user\=antoine/'+\
     #    'Volumes/TESS_05/AW_Data/Sector_60/archive_S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
-    top_data_directory = solong
+    #top_data_directory = solong
+    top_data_directory = local_fits
     #top_data_directory = alc
     files = []
     for a,b,c in os.walk(top_data_directory):
         #print(c)
         files = c
     #trying with one
+    files = sorted(files)
     print(files)
     ones = files[:17]
     five = files[17:22]
     thir = files[22:]
+    #print(five[0])
     #print(ones,'\n',five,'\n',thir)
-    #fill =  fits.open(top_data_directory + 'Didymos_30day_01.fits')
-    #dat1 = fill[0].data
-    #goo = photo( dat1 )
-    #print(goo[0])
-    #print(goo[1])
-    #print(len(goo[1]))
-    #pho1 = goo[1]
-    #pho2 = [ i[0] for i in pho1]
-    #pho3 = np.array(pho2,dtype=float)
-    #xax = np.arange( 200,399, 1,dtype=int)
-    #yax = pho3
-    #plot_photo(xax,yax)
-    #print(yax)
-    #do all of them actually
-    #for i in range(len(files)):
-    #    ifile = fits.open(top_data_directory+files[i])
-    #    dati = ifile[0].data
-    #    phot1 = photo( dati, radius=2 )
-    #    print(phot1)
-    #    phot2 = [ i[2] for i in phot1 ]
-    #    phot3 = np.array(phot2,dtype=float)
-    #    xx,yy = get_photo(phot3)
-    #    plot_photo(xx,yy,title=files[i])
-    she = photo_all(five)
+    fivee = bulkdata( [local_fits+ five[1]] )
+    five0,headd, = fivee[0]
+    weall = wider( five0,  make_image=True)
+    plt.imshow(weall[2],origin='lower',vmin=0.,vmax=20.)
+    plt.show()
+    #she = photo_all(five, radius=1)
+    she =photo_all(thir, radius=0)
+    print(she[0])
+    #print(she[1])
+    #she =photo_all(thir, radius=1)
     #print(she[0])
     #print(she[1])
-    fig,ax=plt.subplots()
-    ax.plot( she[1][1] )
-    ax.set_xlim((-1,50))
-    plt.show()
+    #she =photo_all(thir, radius=2)
+    #print(she[0])
+    #print(she[1])
+    #fig,ax=plt.subplots()
+    #ax.plot( she[1][1] )
+    #ax.set_xlim((-1,50))
+    #plt.show()
     #she0 = she[0]
     #print( she[-1][1] )
     #plot_photo( she0[0],she0[1],title=files[0] )
