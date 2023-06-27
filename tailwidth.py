@@ -186,23 +186,32 @@ def get_photo(data):
     xax = np.arange(ns,dtype=int)
     #plot_photo(xax,yax)
     return (xax,yax)
-def plot_photo(datax, datay, title='', savehere=''):
+def plot_photo(datax, datay, title='', savehere='',yscale='linear',conn=4):
     """
     datax, datay: 1d arrays of floats to have plotted
     """
     fig, ax = plt.subplots()
-    #fig.figsize=
-    fig.dpi=140
+    fig.set_size_inches(8,6)
+    fig.dpi=200
     #
-    ax.plot(datax, datay)
-    #ax.set_yscale('log')
-    #ax.set_xlim(0,50)
+    ax.plot(datax, datay,color='k')
+    #ax.plot(datax,smoother)
+    #ax.plot(datax,conn)
+    #ax.vlines(conn,ymin=0,ymax=np.max(smoother),ls='dashed',color='k')
+    ax.set_yscale(yscale)
+    ax.set_xlim(-1,201)
     #
     if title: ax.set_title(title)
+    #ax.tick_params(axis='y',which='both')
+    ax.tick_params(axis='both',which='major',width=3.,length=10.)
+    ax.tick_params(axis='y',which='minor',width=0.8,length=7.)
+    ax.set_xticks(np.arange(0,109,10))
     ax.set_xlabel('pixels from center')
-    ax.set_ylabel('width of asteroid and tail')
+    ax.set_ylabel('val')
+    ax.grid(axis='both')
+    #ax.grid(axis='y',which='both')
     if savehere:
-        plt.savefig(savehere+title+'.png')
+        plt.savefig(savehere+'.png',dpi=200,bbox_inches='tight')
     plt.show()
     return
 def datafile(filepath,extend=0):
@@ -244,6 +253,35 @@ def photo_all(files, radius=0):
         pass
     #pack = (c1,c2)
     return cc
+def smoothing(data, box=2):
+    #
+    ans = np.zeros(shape=data.shape)
+    if box==0:
+        return data.copy()
+    else:
+        for i in range(len(data)):
+            if i < box:
+                she = data[:i+box+1].copy()
+                nan_correction = she.size / (she.size-np.count_nonzero(np.isnan(she)))
+                ans[i] = np.nanmean(she) * nan_correction
+            elif i>=len(data)-box:
+                she = data[i-box:].copy()
+                nan_correction = she.size / (she.size-np.count_nonzero(np.isnan(she)))
+                ans[i] = np.nanmean(she) * nan_correction
+            else:
+                she = data[i-box:i+box+1].copy()
+                nan_correction = she.size / (she.size-np.count_nonzero(np.isnan(she)))
+                ans[i] = np.nanmean(she) * nan_correction
+            pass
+        return ans
+def contin(data,smoothed):
+    cont = data[50:150].copy()
+    conx = np.arange(0,data.size,1)
+    p, pp = curve_fit(liner,conx[50:150],cont,p0=(0.,0.2))
+    lino = liner( conx, p[0], p[1])
+    we = np.where( data- lino > 0., False, True)
+    inter = conx[we][0]
+    return inter
 if __name__ == '__main__':
     solong = '/run/user/1000/gvfs/sftp:host=copernicus.astro.umd.edu,user=antoine/'+\
         'Volumes/TESS_05/AW_Data/Sector_60/S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
@@ -252,7 +290,7 @@ if __name__ == '__main__':
     savinghere = '/run/user/1000/gvfs/sftp:host=copernicus.astro.umd.edu,user=antoine/'+\
         'Volumes/TESS_05/AW_Data/didy_widths/'
     local_fits = '/home/antoine/Desktop/darttess/B_rotation/fits/'
-    save2 = '/home/antoine/codespace_tess/'
+    save2 = '/home/antoine/Desktop/codespace_tess/plot_results/longs/'
     #archived = '/run/user/1000/gvfs/sftp\:host\=copernicus.astro.umd.edu\,user\=antoine/'+\
     #    'Volumes/TESS_05/AW_Data/Sector_60/archive_S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
     #top_data_directory = solong
@@ -268,16 +306,25 @@ if __name__ == '__main__':
     ones = files[:17]
     five = files[17:22]
     thir = files[22:]
+    doit = five+thir
     #print(five[0])
     #print(ones,'\n',five,'\n',thir)
     fivee = bulkdata( [local_fits+ five[1]] )
     five0,headd, = fivee[0]
-    weall = wider( five0,  make_image=True)
-    plt.imshow(weall[2],origin='lower',vmin=0.,vmax=20.)
-    plt.show()
+    weall = wider( five0,  radius=2, make_image=True)
+    
+    #plt.imshow(weall[2],origin='lower',vmin=0.,vmax=10.)
+    #plt.show()
+    
     #she = photo_all(five, radius=1)
-    she =photo_all(thir, radius=0)
-    print(she[0])
+    she =photo_all(doit, radius=0)
+    for i in range(len(she)):
+        smoother = smoothing(she[i][0], box=4)
+        conn = contin(she[i][0],smoother)
+        plot_photo( np.arange(len(she[i][0])) , she[i][0] , conn=conn, title=doit[i]+' peaks ', yscale='log',savehere=save2+doit[i] )
+        plot_photo( np.arange(len(she[i][1])) , she[i][1] , conn=conn, title=doit[i]+' widths')
+        print(conn)
+    #print(she[0])
     #print(she[1])
     #she =photo_all(thir, radius=1)
     #print(she[0])

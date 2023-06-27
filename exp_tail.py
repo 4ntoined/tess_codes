@@ -96,9 +96,11 @@ if __name__ == '__main__':
         #'Volumes/TESS_05/AW_Data/Sector_60/S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
     path1 = ''
     path2 = 'Users/antoine/Desktop/stash/rotated/'
+    local_fits = '/home/antoine/Desktop/darttess/B_rotation/fits/'
+    save2 = '/home/antoine/Desktop/codespace_tess/plot_results/longs_/'
     #archived = '/run/user/1000/gvfs/sftp\:host\=copernicus.astro.umd.edu\,user\=antoine/'+\
     #    'Volumes/TESS_05/AW_Data/Sector_60/archive_S60_cam1_ccd4/Didymos/Didymos_coadd/fits/'
-    top_data_directory = root1 + path2
+    top_data_directory = local_fits
     file2 = []
     for a,b,c in os.walk(top_data_directory):
         #print(c)
